@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import Link from "next/link";
 import { useSettings } from "@/app/_context/SettingsContext";
+import { useLenis } from "@/lib/lenis";
 
 interface SearchSurah {
   number: number;
@@ -31,6 +32,7 @@ interface SearchModalProps {
 
 export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   const { settings } = useSettings();
+  const lenis = useLenis();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [allSurahs, setAllSurahs] = useState<SearchSurah[]>([]);
@@ -157,17 +159,14 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [open, onOpenChange]);
 
-  // Lock body scroll when modal is open
+  // Stop Lenis when modal is open so the background page doesn't scroll
   useEffect(() => {
+    if (!lenis) return;
     if (open) {
-      document.documentElement.style.overflow = "hidden";
-      document.documentElement.style.scrollBehavior = "auto";
-      return () => {
-        document.documentElement.style.overflow = "";
-        document.documentElement.style.scrollBehavior = "";
-      };
+      lenis.stop();
+      return () => lenis.start();
     }
-  }, [open]);
+  }, [open, lenis]);
 
   return (
     <AnimatePresence>
@@ -224,7 +223,7 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
               </div>
 
               {/* Results */}
-              <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
+              <div className="max-h-[60vh] overflow-y-auto overscroll-contain" data-lenis-prevent>
                 {query &&
                 results.surahs.length === 0 &&
                 results.ayahs.length === 0 ? (

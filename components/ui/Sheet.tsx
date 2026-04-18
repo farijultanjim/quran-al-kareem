@@ -3,6 +3,7 @@
 import React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useLenis } from "@/lib/lenis";
 
 /* Sheet Components */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -63,22 +64,15 @@ function SheetContent({
     left: "data-[state=open]:slide-in-from-left-10 data-[state=closed]:slide-out-to-left-10",
   };
 
+  const lenis = useLenis();
+
+  // Stop Lenis while the sheet is mounted (i.e. open) so the background
+  // page doesn't scroll through the sheet overlay
   React.useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-
-    // Store original overflow values
-    const originalHtmlOverflow = html.style.overflow;
-    const originalBodyOverflow = body.style.overflow;
-
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-
-    return () => {
-      html.style.overflow = originalHtmlOverflow;
-      body.style.overflow = originalBodyOverflow;
-    };
-  }, []);
+    if (!lenis) return;
+    lenis.stop();
+    return () => lenis.start();
+  }, [lenis]);
 
   return (
     <SheetPortal>
@@ -88,7 +82,7 @@ function SheetContent({
         {...props}
       >
         <div className="flex flex-col overflow-hidden flex-1 min-h-0">
-          <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
+          <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain" data-lenis-prevent>
             {children}
           </div>
         </div>
