@@ -10,6 +10,7 @@ import {
 } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, Search, Settings } from "lucide-react";
+import { Button } from "@/components/Button";
 
 const customEasing = cubicBezier(0.76, 0, 0.24, 1);
 
@@ -26,21 +27,6 @@ const logoVariants = {
     opacity: 1,
     transition: { duration: 0.8, ease: customEasing },
   },
-};
-
-const buttonVariants = {
-  initial: { opacity: 0, scale: 0.8 },
-  animate: (index: number) => ({
-    opacity: 1,
-    scale: 1,
-    transition: {
-      duration: 0.5,
-      ease: customEasing,
-      delay: index * 0.1,
-    },
-  }),
-  whileHover: { scale: 1.05 },
-  whileTap: { scale: 0.95 },
 };
 
 export default function Header({
@@ -140,34 +126,48 @@ export default function Header({
               {/* Action Buttons */}
               <div className="flex items-center gap-2 md:gap-3">
                 {/* Search Button */}
-                <motion.button
-                  variants={buttonVariants}
-                  initial="initial"
-                  animate="animate"
-                  custom={0}
-                  whileHover="whileHover"
-                  whileTap="whileTap"
-                  onClick={onSearchClick}
-                  className="p-2 md:p-2.5 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300"
-                  aria-label="Search"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      duration: 0.5,
+                      ease: customEasing,
+                      delay: 0,
+                    },
+                  }}
                 >
-                  <Search className="w-5 h-5 md:w-6 md:h-6" />
-                </motion.button>
+                  <Button
+                    variant="icon"
+                    onClick={onSearchClick}
+                    aria-label="Search"
+                  >
+                    <Search className="w-5 h-5 md:w-6 md:h-6" />
+                  </Button>
+                </motion.div>
 
                 {/* Settings Button */}
-                <motion.button
-                  variants={buttonVariants}
-                  initial="initial"
-                  animate="animate"
-                  custom={1}
-                  whileHover="whileHover"
-                  whileTap="whileTap"
-                  onClick={onSettingsClick}
-                  className="p-2 md:p-2.5 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300"
-                  aria-label="Settings"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      duration: 0.5,
+                      ease: customEasing,
+                      delay: 0.1,
+                    },
+                  }}
                 >
-                  <Settings className="w-5 h-5 md:w-6 md:h-6" />
-                </motion.button>
+                  <Button
+                    variant="icon"
+                    onClick={onSettingsClick}
+                    aria-label="Settings"
+                  >
+                    <Settings className="w-5 h-5 md:w-6 md:h-6" />
+                  </Button>
+                </motion.div>
               </div>
             </div>
           </div>

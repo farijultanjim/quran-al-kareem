@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import { motion, cubicBezier } from "framer-motion";
-import { ArrowDown, BookOpen } from "lucide-react";
+import { ArrowDown } from "lucide-react";
+import { Button } from "@/components/Button";
 
 const customEasing = cubicBezier(0.23, 1, 0.32, 1);
 
@@ -26,61 +26,9 @@ const itemVariants = {
   },
 };
 
-const floatingVariants = {
-  initial: { y: 0 },
-  animate: {
-    y: [-20, 20, -20],
-    transition: {
-      duration: 4,
-      repeat: Infinity,
-      ease: "easeInOut",
-    },
-  },
-};
-
-const scaleVariants = {
-  initial: { scale: 0.8, opacity: 0 },
-  animate: {
-    scale: 1,
-    opacity: 1,
-    transition: { duration: 1, ease: customEasing },
-  },
-};
-
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-20">
-      {/* Animated Background Gradients */}
-      <div className="absolute inset-0 -z-10">
-        {/* Primary gradient blob */}
-        <motion.div
-          className="absolute top-20 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        {/* Secondary gradient blob */}
-        <motion.div
-          className="absolute bottom-10 right-10 w-80 h-80 bg-primary/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      </div>
-
       {/* Main Content */}
       <div className="relative container mx-auto px-4 max-w-4xl">
         <motion.div
@@ -89,21 +37,10 @@ export default function Hero() {
           animate="animate"
           className="space-y-8 text-center"
         >
-          {/* Icon */}
-          <motion.div variants={scaleVariants} className="flex justify-center">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="p-4 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20"
-            >
-              <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-primary" />
-            </motion.div>
-          </motion.div>
-
           {/* Main Heading */}
           <motion.div variants={itemVariants} className="space-y-4">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-primary leading-tight">
-              Qur'an
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-primary leading-">
+              Qur&apos;an
               <br />
               <span className="text-foreground">Al-Kareem</span>
             </h1>
@@ -114,7 +51,7 @@ export default function Hero() {
             variants={itemVariants}
             className="text-base md:text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed"
           >
-            Explore the divine wisdom of the Holy Qur'an with customizable
+            Explore the divine wisdom of the Holy Qur&apos;an with customizable
             fonts, translations, and beautiful reading experience.
           </motion.p>
 
@@ -124,27 +61,15 @@ export default function Hero() {
             className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
           >
             {/* Primary Button */}
-            <motion.button
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative px-8 md:px-10 py-4 rounded-xl font-semibold text-background bg-primary shadow-lg hover:shadow-xl transition-shadow group overflow-hidden"
-            >
-              {/* Glassmorphic shine effect */}
-              <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-              <span className="relative flex items-center gap-2">
+            <Button variant="primary">
+              <span className="flex items-center gap-2">
                 Start Reading
                 <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
               </span>
-            </motion.button>
+            </Button>
 
             {/* Secondary Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 md:px-10 py-4 rounded-xl font-semibold text-primary bg-primary/10 backdrop-blur-md border border-primary/20 hover:border-primary/40 hover:bg-primary/15 transition-all"
-            >
-              Explore Surahs
-            </motion.button>
+            <Button variant="outlined">Explore Surahs</Button>
           </motion.div>
 
           {/* Stats Section */}

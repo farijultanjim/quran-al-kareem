@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Amiri, Scheherazade_New } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from "./_context/SettingsContext";
-import Header from "@/components/Header";
+import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { LenisProvider } from "@/lib/lenis";
 
 const archivo = Archivo({
@@ -41,8 +41,7 @@ export default function RootLayout({
       >
         <LenisProvider>
           <SettingsProvider>
-            <Header />
-            {children}
+            <LayoutWrapper>{children}</LayoutWrapper>
           </SettingsProvider>
         </LenisProvider>
       </body>
