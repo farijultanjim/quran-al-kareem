@@ -8,7 +8,6 @@ export default function Home() {
     <main className="min-h-screen flex flex-col bg-background">
       {/* Hero Section */}
       <Hero />
-
       {/* Surahs List Section */}
       <SurahList />
     </main>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSettings } from "@/app/_context/SettingsContext";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/Button";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 interface DisplaySurah {
   number: number;
@@ -34,11 +36,17 @@ const itemVariants = {
   },
 };
 
+type SortOrder = "ascending" | "descending";
+type RevelationType = "all" | "Meccan" | "Medinan";
+
 export function SurahList() {
   const { settings } = useSettings();
   const [surahs, setSurahs] = useState<DisplaySurah[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("ascending");
+  const [revelationFilter, setRevelationFilter] =
+    useState<RevelationType>("all");
 
   useEffect(() => {
     async function fetchSurahs() {
@@ -49,7 +57,10 @@ export function SurahList() {
         if (!response.ok) throw new Error("Failed to fetch Surahs");
 
         const data = await response.json();
-        const surahList = data.data.surahs.map((surah: any) => ({
+        interface ApiSurah extends DisplaySurah {
+          ayahs: { length: number };
+        }
+        const surahList = data.data.surahs.map((surah: ApiSurah) => ({
           number: surah.number,
           name: surah.name,
           englishName: surah.englishName,
@@ -68,6 +79,29 @@ export function SurahList() {
 
     fetchSurahs();
   }, []);
+
+  // Apply filtering and sorting to surahs
+  const getFilteredAndSortedSurahs = () => {
+    let filtered = [...surahs];
+
+    // Apply revelation type filter
+    if (revelationFilter !== "all") {
+      filtered = filtered.filter(
+        (surah) => surah.revelationType === revelationFilter,
+      );
+    }
+
+    // Apply sorting
+    if (sortOrder === "descending") {
+      filtered.sort((a, b) => b.number - a.number);
+    } else {
+      filtered.sort((a, b) => a.number - b.number);
+    }
+
+    return filtered;
+  };
+
+  const filteredSurahs = getFilteredAndSortedSurahs();
 
   if (loading) {
     return (
@@ -97,29 +131,89 @@ export function SurahList() {
   }
 
   return (
-    <section className="py-20 px-4">
+    <section id="surah-list" className="py-20 px-4">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-16 text-center"
-        >
-          <h2 className="text-3xl md:text-5xl font-bold text-primary mb-4">
-            All Surahs
-          </h2>
-          <p className="text-foreground/60 text-lg">
-            Explore all 114 chapters of the Holy Qur'an
-          </p>
-        </motion.div>
+        {/* Header with Filters */}
+        <div className="mb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-5xl font-bold text-primary mb-4">
+              All Surahs
+            </h2>
+            <p className="text-foreground/60 text-lg">
+              Explore all 114 chapters of the Holy Qur&apos;an
+            </p>
+          </motion.div>
+
+          {/* Filter Controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex flex-wrap gap-2 md:gap-3"
+          >
+            {/* Sort Order Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="select"
+                isActive={sortOrder === "ascending"}
+                onClick={() => setSortOrder("ascending")}
+                className="flex items-center gap-1"
+              >
+                <ArrowUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Asc</span>
+              </Button>
+              <Button
+                variant="select"
+                isActive={sortOrder === "descending"}
+                onClick={() => setSortOrder("descending")}
+                className="flex items-center gap-1"
+              >
+                <ArrowDown className="w-4 h-4" />
+                <span className="hidden sm:inline">Desc</span>
+              </Button>
+            </div>
+
+            {/* Type Filter Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="select"
+                isActive={revelationFilter === "all"}
+                onClick={() => setRevelationFilter("all")}
+                className="text-sm"
+              >
+                All
+              </Button>
+              <Button
+                variant="select"
+                isActive={revelationFilter === "Meccan"}
+                onClick={() => setRevelationFilter("Meccan")}
+                className="text-sm"
+              >
+                Meccan
+              </Button>
+              <Button
+                variant="select"
+                isActive={revelationFilter === "Medinan"}
+                onClick={() => setRevelationFilter("Medinan")}
+                className="text-sm"
+              >
+                Medinan
+              </Button>
+            </div>
+          </motion.div>
+        </div>
 
         <motion.div
           variants={containerVariants}
           initial="initial"
           animate="animate"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
         >
-          {surahs.map((surah) => (
+          {filteredSurahs.map((surah) => (
             <motion.div
               key={surah.number}
               variants={itemVariants}
@@ -127,7 +221,7 @@ export function SurahList() {
               whileTap={{ scale: 0.98 }}
             >
               <Link href={`/surah/${surah.number}`}>
-                <div className="h-full p-6 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer group overflow-hidden">
+                <div className="h-full p-6 rounded-xl bg-linear-to-br from-primary/10 to-primary/5 backdrop-blur-sm border border-primary/20 hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer group overflow-hidden">
                   {/* Glassmorphic shine effect */}
                   <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
 

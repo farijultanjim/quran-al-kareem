@@ -27,8 +27,13 @@ const itemVariants = {
 };
 
 export default function Hero() {
+  const handleScrollToSurahs = () => {
+    const element = document.getElementById("surah-list");
+    element?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-20">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32 pb-20">
       {/* Main Content */}
       <div className="relative container mx-auto px-4 max-w-4xl">
         <motion.div
@@ -55,21 +60,14 @@ export default function Hero() {
             fonts, translations, and beautiful reading experience.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
-          >
-            {/* Primary Button */}
-            <Button variant="primary">
+          {/* CTA Button */}
+          <motion.div variants={itemVariants} className="pt-4">
+            <Button variant="primary" onClick={handleScrollToSurahs}>
               <span className="flex items-center gap-2">
-                Start Reading
+                Browse Surahs
                 <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
               </span>
             </Button>
-
-            {/* Secondary Button */}
-            <Button variant="outlined">Explore Surahs</Button>
           </motion.div>
 
           {/* Stats Section */}
