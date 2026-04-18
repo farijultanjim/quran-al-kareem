@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Sheet,
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/Button";
 import { useSettings, type ArabicFont } from "@/app/_context/SettingsContext";
 import { RotateCcw } from "lucide-react";
+import { useLenis } from "@/lib/lenis";
 
 interface SettingsSheetProps {
   open: boolean;
@@ -20,7 +21,17 @@ interface SettingsSheetProps {
 
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const { settings, updateSettings, resetSettings } = useSettings();
+  const lenis = useLenis();
   const [tempSettings, setTempSettings] = useState(settings);
+
+  // Stop Lenis when sheet is open so the background page doesn't scroll
+  useEffect(() => {
+    if (!lenis) return;
+    if (open) {
+      lenis.stop();
+      return () => lenis.start();
+    }
+  }, [open, lenis]);
 
   const arabicFonts: { label: string; value: ArabicFont; preview: string }[] = [
     { label: "Amiri", value: "amiri", preview: "Amiri" },

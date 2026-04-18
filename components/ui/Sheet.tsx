@@ -3,7 +3,6 @@
 import React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useLenis } from "@/lib/lenis";
 
 /* Sheet Components */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -64,15 +63,6 @@ function SheetContent({
     left: "data-[state=open]:slide-in-from-left-10 data-[state=closed]:slide-out-to-left-10",
   };
 
-  const lenis = useLenis();
-
-  // Stop Lenis while the sheet is mounted (i.e. open) so the background
-  // page doesn't scroll through the sheet overlay
-  React.useEffect(() => {
-    if (!lenis) return;
-    lenis.stop();
-    return () => lenis.start();
-  }, [lenis]);
 
   return (
     <SheetPortal>
