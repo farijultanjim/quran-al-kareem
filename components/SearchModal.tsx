@@ -32,9 +32,30 @@ interface SearchModalProps {
 export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   const { settings } = useSettings();
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [allSurahs, setAllSurahs] = useState<SearchSurah[]>([]);
   const [allAyahs, setAllAyahs] = useState<SearchAyah[]>([]);
   const hasFetchedRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  // Debounce the search query
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [query]);
 
   // Fetch all surahs and ayahs on component mount
   useEffect(() => {
@@ -94,9 +115,9 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
 
   // Calculate results for both surahs and ayahs
   const results = useMemo(() => {
-    if (!query.trim()) return { surahs: [], ayahs: [] };
+    if (!debouncedQuery.trim()) return { surahs: [], ayahs: [] };
 
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = debouncedQuery.toLowerCase();
 
     // Search surahs
     const surahResults = allSurahs.filter((surah) => {
@@ -111,16 +132,18 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
       return numberMatch || englishNameMatch || translationMatch;
     });
 
-    // Search ayahs by translation text
-    const ayahResults = allAyahs.filter((ayah) => {
-      return (
-        ayah.translation.toLowerCase().includes(lowerQuery) ||
-        ayah.text.toLowerCase().includes(lowerQuery)
-      );
-    });
+    // Search ayahs by translation text - limit to 50 results for performance
+    const ayahResults = allAyahs
+      .filter((ayah) => {
+        return (
+          ayah.translation.toLowerCase().includes(lowerQuery) ||
+          ayah.text.toLowerCase().includes(lowerQuery)
+        );
+      })
+      .slice(0, 50); // Limit to 50 results
 
     return { surahs: surahResults, ayahs: ayahResults };
-  }, [query, allSurahs, allAyahs]);
+  }, [debouncedQuery, allSurahs, allAyahs]);
 
   // Close on escape key
   useEffect(() => {
@@ -165,22 +188,29 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-20 left-1/2 right-4 md:right-auto z-50 w-full md:w-[500px] -translate-x-1/2 md:translate-x-0 md:left-1/2 md:-translate-x-1/2"
+            className="fixed top-20 left-1/2 right-4 md:right-auto z-50 w-full md:w-175 -translate-x-1/2 md:left-1/2"
           >
             <div className="bg-background/95 backdrop-blur-xl rounded-2xl border border-primary/20 shadow-2xl overflow-hidden">
               {/* Search Input */}
               <div className="relative p-4 md:p-6 border-b border-primary/10">
                 <div className="flex items-center gap-3">
-                  <Search className="w-5 h-5 text-primary/60 flex-shrink-0" />
+                  <Search className="w-5 h-5 text-primary/60 shrink-0" />
                   <input
                     type="text"
-                    placeholder="Search Surahs by name or number..."
+                    placeholder="Search Surahs, verses by name, number, or text..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     autoFocus
                     className="flex-1 bg-transparent text-foreground placeholder-foreground/40 outline-none text-lg"
                   />
-                  {query && (
+                  {query && debouncedQuery !== query && (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full flex-shrink-0"
+                    />
+                  )}
+                  {query && debouncedQuery === query && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -285,9 +315,15 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
                     {/* Ayahs Section */}
                     {results.ayahs.length > 0 && (
                       <>
-                        <div className="px-4 md:px-6 py-3 sticky top-0 bg-primary/5 border-b border-primary/10">
+                        <div className="px-4 md:px-6 py-3 sticky top-0 bg-background border-b border-primary/10">
                           <p className="text-xs font-semibold text-primary/60 uppercase tracking-wide">
-                            Verses ({results.ayahs.length})
+                            Verses ({results.ayahs.length}
+                            {results.ayahs.length === 50 && "+"}){" "}
+                            {results.ayahs.length === 50 && (
+                              <span className="text-primary/50 normal-case">
+                                - showing first 50
+                              </span>
+                            )}
                           </p>
                         </div>
                         {results.ayahs.map((ayah, index) => (
@@ -359,7 +395,8 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
               {!query && (
                 <div className="p-4 md:p-6 border-t border-primary/10 bg-primary/5">
                   <p className="text-xs text-foreground/60 text-center">
-                    Start typing to search for Surahs by name or number
+                    Search by Surah name, number, or verse text (wait 300ms for
+                    results)
                   </p>
                 </div>
               )}
