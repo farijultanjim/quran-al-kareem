@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +15,15 @@ interface SearchSurah {
   numberOfAyahs: number;
 }
 
+interface SearchAyah {
+  surahNumber: number;
+  surahName: string;
+  surahEnglishName: string;
+  ayahNumber: number;
+  text: string;
+  translation: string;
+}
+
 interface SearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,51 +32,74 @@ interface SearchModalProps {
 export function SearchModal({ open, onOpenChange }: SearchModalProps) {
   const { settings } = useSettings();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchSurah[]>([]);
   const [allSurahs, setAllSurahs] = useState<SearchSurah[]>([]);
+  const [allAyahs, setAllAyahs] = useState<SearchAyah[]>([]);
   const hasFetchedRef = useRef(false);
 
-  // Fetch all surahs on component mount
+  // Fetch all surahs and ayahs on component mount
   useEffect(() => {
     if (!open || hasFetchedRef.current) return;
 
-    async function fetchSurahs() {
+    async function fetchData() {
       try {
-        const response = await fetch(
-          "https://api.alquran.cloud/v1/quran/quran-uthmani",
-        );
-        const data = await response.json();
-        interface ApiSurah extends SearchSurah {
-          ayahs: { length: number };
-        }
-        const surahs = data.data.surahs.map((surah: ApiSurah) => ({
+        // Fetch Arabic and English translations in parallel
+        const [arabicRes, englishRes] = await Promise.all([
+          fetch("https://api.alquran.cloud/v1/quran/quran-uthmani"),
+          fetch("https://api.alquran.cloud/v1/quran/en.asad"),
+        ]);
+
+        const arabicData = await arabicRes.json();
+        const englishData = await englishRes.json();
+
+        // Process Surahs
+        const surahs = arabicData.data.surahs.map((surah: SearchSurah) => ({
           number: surah.number,
           name: surah.name,
           englishName: surah.englishName,
           englishNameTranslation: surah.englishNameTranslation,
           revelationType: surah.revelationType,
-          numberOfAyahs: surah.ayahs.length,
+          numberOfAyahs: surah.numberOfAyahs,
         }));
+
+        // Process Ayahs with translations
+        const ayahs: SearchAyah[] = [];
+        arabicData.data.surahs.forEach((surah: any) => {
+          const englishSurah = englishData.data.surahs.find(
+            (s: any) => s.number === surah.number,
+          );
+
+          surah.ayahs.forEach((ayah: any, index: number) => {
+            const englishAyah = englishSurah?.ayahs[index];
+            ayahs.push({
+              surahNumber: surah.number,
+              surahName: surah.name,
+              surahEnglishName: surah.englishName,
+              ayahNumber: ayah.numberInSurah,
+              text: ayah.text,
+              translation: englishAyah?.text || "",
+            });
+          });
+        });
+
         setAllSurahs(surahs);
+        setAllAyahs(ayahs);
         hasFetchedRef.current = true;
       } catch (err) {
-        console.error("Failed to fetch surahs:", err);
+        console.error("Failed to fetch data:", err);
       }
     }
 
-    fetchSurahs();
+    fetchData();
   }, [open]);
 
-  // Handle search
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+  // Calculate results for both surahs and ayahs
+  const results = useMemo(() => {
+    if (!query.trim()) return { surahs: [], ayahs: [] };
 
     const lowerQuery = query.toLowerCase();
 
-    const filtered = allSurahs.filter((surah) => {
+    // Search surahs
+    const surahResults = allSurahs.filter((surah) => {
       const numberMatch = surah.number.toString().includes(lowerQuery);
       const englishNameMatch = surah.englishName
         .toLowerCase()
@@ -79,8 +111,16 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
       return numberMatch || englishNameMatch || translationMatch;
     });
 
-    setResults(filtered);
-  }, [query, allSurahs]);
+    // Search ayahs by translation text
+    const ayahResults = allAyahs.filter((ayah) => {
+      return (
+        ayah.translation.toLowerCase().includes(lowerQuery) ||
+        ayah.text.toLowerCase().includes(lowerQuery)
+      );
+    });
+
+    return { surahs: surahResults, ayahs: ayahResults };
+  }, [query, allSurahs, allAyahs]);
 
   // Close on escape key
   useEffect(() => {
@@ -93,6 +133,18 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [open, onOpenChange]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.scrollBehavior = "auto";
+      return () => {
+        document.documentElement.style.overflow = "";
+        document.documentElement.style.scrollBehavior = "";
+      };
+    }
+  }, [open]);
 
   return (
     <AnimatePresence>
@@ -142,84 +194,163 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
               </div>
 
               {/* Results */}
-              <div className="max-h-[60vh] overflow-y-auto">
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                  </div>
-                ) : query && results.length === 0 ? (
+              <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
+                {query &&
+                results.surahs.length === 0 &&
+                results.ayahs.length === 0 ? (
                   <div className="p-8 text-center">
                     <p className="text-foreground/60">
-                      No Surahs found matching &quot;{query}&quot;
+                      No results found matching &quot;{query}&quot;
                     </p>
                   </div>
-                ) : results.length > 0 ? (
+                ) : results.surahs.length > 0 || results.ayahs.length > 0 ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ staggerChildren: 0.05 }}
+                    transition={{ staggerChildren: 0.02 }}
                   >
-                    {results.map((surah, index) => (
-                      <motion.div
-                        key={surah.number}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.02 }}
-                      >
-                        <Link href={`/surah/${surah.number}`}>
-                          <motion.button
-                            onClick={() => {
-                              onOpenChange(false);
-                              setQuery("");
-                            }}
-                            whileHover={{ x: 4 }}
-                            className="w-full px-4 md:px-6 py-4 text-left hover:bg-primary/5 border-b border-primary/5 last:border-0 transition-colors group"
+                    {/* Surahs Section */}
+                    {results.surahs.length > 0 && (
+                      <>
+                        <div className="px-4 md:px-6 py-3 sticky top-0 bg-primary/5 border-b border-primary/10">
+                          <p className="text-xs font-semibold text-primary/60 uppercase tracking-wide">
+                            Surahs ({results.surahs.length})
+                          </p>
+                        </div>
+                        {results.surahs.map((surah, index) => (
+                          <motion.div
+                            key={`surah-${surah.number}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.01 }}
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-sm font-mono text-primary/60 flex-shrink-0">
-                                    {surah.number}
-                                  </span>
-                                  <h3 className="font-bold text-foreground text-lg truncate">
-                                    {surah.englishName}
-                                  </h3>
-                                  <span className="text-xs px-2 py-1 rounded-lg bg-primary/20 text-primary font-medium flex-shrink-0">
-                                    {surah.revelationType}
-                                  </span>
+                            <Link href={`/surah/${surah.number}`}>
+                              <motion.button
+                                onClick={() => {
+                                  onOpenChange(false);
+                                  setQuery("");
+                                }}
+                                whileHover={{ x: 4 }}
+                                className="w-full px-4 md:px-6 py-4 text-left hover:bg-primary/5 border-b border-primary/5 transition-colors group"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className="text-sm font-mono text-primary/60 flex-shrink-0">
+                                        {surah.number}
+                                      </span>
+                                      <h3 className="font-bold text-foreground text-lg truncate">
+                                        {surah.englishName}
+                                      </h3>
+                                      <span className="text-xs px-2 py-1 rounded-lg bg-primary/20 text-primary font-medium flex-shrink-0">
+                                        {surah.revelationType}
+                                      </span>
+                                    </div>
+
+                                    {/* Arabic Name */}
+                                    <p
+                                      className="text-right mb-1 truncate"
+                                      style={{
+                                        fontFamily:
+                                          settings.arabicFont === "amiri"
+                                            ? "'Amiri', serif"
+                                            : settings.arabicFont ===
+                                                "scheherazade"
+                                              ? "'Scheherazade New', serif"
+                                              : "'Traditional Arabic', sans-serif",
+                                        fontSize: "1rem",
+                                        color: "rgb(29, 80, 58)",
+                                      }}
+                                    >
+                                      {surah.name}
+                                    </p>
+
+                                    <p className="text-sm text-foreground/60 truncate">
+                                      {surah.englishNameTranslation} •{" "}
+                                      {surah.numberOfAyahs} verses
+                                    </p>
+                                  </div>
+
+                                  <div className="text-primary/40 group-hover:text-primary/60 transition-colors flex-shrink-0">
+                                    →
+                                  </div>
                                 </div>
+                              </motion.button>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </>
+                    )}
 
-                                {/* Arabic Name */}
-                                <p
-                                  className="text-right mb-1 truncate"
-                                  style={{
-                                    fontFamily:
-                                      settings.arabicFont === "amiri"
-                                        ? "'Amiri', serif"
-                                        : settings.arabicFont === "scheherazade"
-                                          ? "'Scheherazade New', serif"
-                                          : "'Traditional Arabic', sans-serif",
-                                    fontSize: "1rem",
-                                    color: "rgb(29, 80, 58)",
-                                  }}
-                                >
-                                  {surah.name}
-                                </p>
+                    {/* Ayahs Section */}
+                    {results.ayahs.length > 0 && (
+                      <>
+                        <div className="px-4 md:px-6 py-3 sticky top-0 bg-primary/5 border-b border-primary/10">
+                          <p className="text-xs font-semibold text-primary/60 uppercase tracking-wide">
+                            Verses ({results.ayahs.length})
+                          </p>
+                        </div>
+                        {results.ayahs.map((ayah, index) => (
+                          <motion.div
+                            key={`ayah-${ayah.surahNumber}-${ayah.ayahNumber}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.01 }}
+                          >
+                            <Link href={`/surah/${ayah.surahNumber}`}>
+                              <motion.button
+                                onClick={() => {
+                                  onOpenChange(false);
+                                  setQuery("");
+                                }}
+                                whileHover={{ x: 4 }}
+                                className="w-full px-4 md:px-6 py-4 text-left hover:bg-primary/5 border-b border-primary/5 last:border-0 transition-colors group"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-xs font-mono text-primary/60 flex-shrink-0">
+                                        {ayah.surahNumber}:{ayah.ayahNumber}
+                                      </span>
+                                      <span className="text-sm font-semibold text-primary">
+                                        {ayah.surahEnglishName}
+                                      </span>
+                                    </div>
 
-                                <p className="text-sm text-foreground/60 truncate">
-                                  {surah.englishNameTranslation} •{" "}
-                                  {surah.numberOfAyahs} verses
-                                </p>
-                              </div>
+                                    {/* Arabic Text */}
+                                    <p
+                                      className="text-right mb-2 line-clamp-2"
+                                      style={{
+                                        fontFamily:
+                                          settings.arabicFont === "amiri"
+                                            ? "'Amiri', serif"
+                                            : settings.arabicFont ===
+                                                "scheherazade"
+                                              ? "'Scheherazade New', serif"
+                                              : "'Traditional Arabic', sans-serif",
+                                        fontSize: "0.95rem",
+                                        color: "rgb(29, 80, 58)",
+                                      }}
+                                    >
+                                      {ayah.text}
+                                    </p>
 
-                              <div className="text-primary/40 group-hover:text-primary/60 transition-colors flex-shrink-0">
-                                →
-                              </div>
-                            </div>
-                          </motion.button>
-                        </Link>
-                      </motion.div>
-                    ))}
+                                    {/* Translation */}
+                                    <p className="text-sm text-foreground/70 line-clamp-2">
+                                      {ayah.translation}
+                                    </p>
+                                  </div>
+
+                                  <div className="text-primary/40 group-hover:text-primary/60 transition-colors flex-shrink-0 mt-1">
+                                    →
+                                  </div>
+                                </div>
+                              </motion.button>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </>
+                    )}
                   </motion.div>
                 ) : null}
               </div>
