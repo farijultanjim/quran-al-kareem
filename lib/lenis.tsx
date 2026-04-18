@@ -1,5 +1,6 @@
 "use client";
 
+import "lenis/dist/lenis.css";
 import { ReactLenis, useLenis } from "lenis/react";
 import { frame, cancelFrame } from "framer-motion";
 import { useEffect, useRef } from "react";
@@ -22,23 +23,7 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ReactLenis
-      root
-      options={{
-        autoRaf: false,
-        // Tell Lenis to hand back control when the scroll target
-        // is inside an element marked with data-lenis-prevent
-        prevent: (node: Element) => {
-          let el: Element | null = node;
-          while (el) {
-            if (el.hasAttribute?.("data-lenis-prevent")) return true;
-            el = el.parentElement;
-          }
-          return false;
-        },
-      }}
-      ref={lenisRef}
-    >
+    <ReactLenis root options={{ autoRaf: false }} ref={lenisRef}>
       {children}
     </ReactLenis>
   );
