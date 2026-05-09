@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, cubicBezier, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Search,
@@ -48,6 +49,8 @@ export default function Header({
 }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const { settings, updateSettings } = useSettings();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
 
   const yPosition = useMotionValue(0);
   const springY = useSpring(yPosition, { stiffness: 100, damping: 20 });
@@ -112,28 +115,30 @@ export default function Header({
             <div className="flex items-center justify-between">
               {/* Menu Button - Mobile/Tablet Only */}
               <div className="flex items-center gap-3">
-                <motion.div
-                  className="md:hidden"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    transition: {
-                      duration: 0.5,
-                      ease: customEasing,
-                      delay: 0,
-                    },
-                  }}
-                >
-                  <Button
-                    variant="icon"
-                    onClick={onMenuClick}
-                    aria-label="Menu"
-                    className="w-9 h-9 sm:w-10 sm:h-10"
+                {!isHome && (
+                  <motion.div
+                    className="md:hidden"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                      transition: {
+                        duration: 0.5,
+                        ease: customEasing,
+                        delay: 0,
+                      },
+                    }}
                   >
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </motion.div>
+                    <Button
+                      variant="icon"
+                      onClick={onMenuClick}
+                      aria-label="Menu"
+                      className="w-9 h-9 sm:w-10 sm:h-10"
+                    >
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </motion.div>
+                )}
 
                 {/* Logo */}
                 <motion.div
@@ -243,28 +248,30 @@ export default function Header({
                 </motion.div>
 
                 {/* Settings Button - Mobile/Tablet Only */}
-                <motion.div
-                  className="md:hidden"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    transition: {
-                      duration: 0.5,
-                      ease: customEasing,
-                      delay: 0.1,
-                    },
-                  }}
-                >
-                  <Button
-                    variant="icon"
-                    onClick={onSettingsClick}
-                    aria-label="Settings"
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full"
+                {!isHome && (
+                  <motion.div
+                    className="md:hidden"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                      transition: {
+                        duration: 0.5,
+                        ease: customEasing,
+                        delay: 0.1,
+                      },
+                    }}
                   >
-                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Button>
-                </motion.div>
+                    <Button
+                      variant="icon"
+                      onClick={onSettingsClick}
+                      aria-label="Settings"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full"
+                    >
+                      <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </Button>
+                  </motion.div>
+                )}
               </div>
             </div>
           </div>

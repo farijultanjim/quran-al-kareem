@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSurahStore } from "./SurahProvider";
 import { usePathname } from "next/navigation";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-} from "@/components/ui/Sheet";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/Sheet";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import Link from "next/link";
@@ -28,22 +25,14 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  const { surahs: ctxSurahs, loading: ctxLoading } = useSurahStore();
   useEffect(() => {
-    async function fetchSurahs() {
-      try {
-        const res = await fetch("https://api.alquran.cloud/v1/surah");
-        const data = await res.json();
-        setSurahs(data.data);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    }
-
-    if (open && surahs.length === 0) fetchSurahs();
-  }, [open, surahs.length]);
+    // sync local state with provider
+    setSurahs(ctxSurahs as Surah[]);
+    setLoading(ctxLoading);
+  }, [ctxSurahs, ctxLoading]);
 
   const filtered = surahs.filter(
     (s) =>
@@ -58,13 +47,61 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
   const currentSurahId = pathname?.split("/").pop()
     ? parseInt(pathname.split("/").pop() as string)
     : null;
+  // manage scroll inside the sheet container: restore saved position and keep selected surah visible
+  useEffect(() => {
+    const KEY = "surah-sheet-scroll-y";
+    const container = scrollRef.current;
+    if (!container) return;
+
+    if (open) {
+      const saved = sessionStorage.getItem(KEY);
+      if (saved) {
+        const y = parseInt(saved, 10);
+        if (!Number.isNaN(y)) container.scrollTop = y;
+      }
+
+      // Wait for items to render before scrolling to the selected surah.
+      if (currentSurahId) {
+        let attempts = 0;
+        const tryScroll = () => {
+          const el = container.querySelector(
+            `[data-surah-number="${currentSurahId}"]`,
+          );
+          if (el instanceof HTMLElement) {
+            const offset =
+              el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+            container.scrollTo({ top: offset, behavior: "auto" });
+            return;
+          }
+          attempts += 1;
+          if (attempts < 8) {
+            setTimeout(tryScroll, 80);
+          }
+        };
+        // schedule first attempt on next tick so React can render list
+        setTimeout(tryScroll, 0);
+      }
+    }
+
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        sessionStorage.setItem(KEY, String(container.scrollTop || 0));
+      });
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [open, currentSurahId, surahs.length]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left">
         <SheetHeader className="p-4 mt-4">
-          {/* <SheetTitle>Surahs</SheetTitle>
-          <SheetDescription>Choose a Surah</SheetDescription> */}
           <div className="relative">
             <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50" />
             <Input
@@ -77,7 +114,11 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
         </SheetHeader>
 
         <div className="p-4">
-          <div className="space-y-3">
+          <div
+            ref={scrollRef}
+            id="surah-sheet-scroll"
+            className="space-y-3 max-h-[70vh] overflow-y-auto"
+          >
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -108,6 +149,7 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
                   key={s.number}
                   href={`/surah/${s.number}`}
                   onClick={() => onOpenChange(false)}
+                  data-surah-number={s.number}
                   className={`flex items-center justify-between gap-3 px-4 py-4 rounded-xl transition-colors border ${
                     currentSurahId === s.number
                       ? "bg-primary/5 border-primary/40"

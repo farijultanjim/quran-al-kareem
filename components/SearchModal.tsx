@@ -152,7 +152,7 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-20 left-1/2 right-4 md:right-auto z-50 w-full md:w-175 -translate-x-1/2 md:left-1/2"
+            className="fixed top-25 left-4 right-4 md:right-auto z-50 w-auto md:w-175 md:left-1/2 md:-translate-x-1/2"
           >
             <div className="bg-background/95 backdrop-blur-xl rounded-2xl border border-primary/20 shadow-2xl overflow-hidden">
               {/* Search Input */}
@@ -278,8 +278,6 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
                         ))}
                       </>
                     )}
-
-                    {/* Ayahs Section */}
                     {results.ayahs.length > 0 && (
                       <>
                         <div className="px-4 md:px-6 py-3 sticky top-0 bg-background border-b border-primary/10">
@@ -361,9 +359,8 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
               {/* Footer Info */}
               {!query && (
                 <div className="p-4 md:p-6 border-t border-primary/10 bg-primary/5">
-                  <p className="text-xs text-foreground/60 text-center">
-                    Search by Surah name, number, or verse text (wait 300ms for
-                    results)
+                  <p className="text-xs md:text-sm text-foreground/60 text-center">
+                    Search by Surah name, number, or verse text.
                   </p>
                 </div>
               )}

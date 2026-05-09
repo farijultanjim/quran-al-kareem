@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Pause, Play } from "lucide-react";
 import { useSettings } from "@/app/_context/SettingsContext";
-import { Button } from "@/components/ui/Button";
 import { AudioPlayer } from "@/components/AudioPlayer";
 
 interface Ayah {
@@ -27,7 +26,24 @@ interface SurahDetail {
 export default function SurahClient({ surah }: { surah: SurahDetail }) {
   const { settings } = useSettings();
   const [activeAyahIndex, setActiveAyahIndex] = useState<number | null>(null);
-  const [ayahDurations, setAyahDurations] = useState<number[]>([]);
+  const initialDurations = (() => {
+    try {
+      if (typeof window === "undefined" || !surah) return [] as number[];
+      const key = `surah-durations-${surah.number}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return Array(surah.ayahs.length).fill(0);
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length !== surah.ayahs.length)
+        return Array(surah.ayahs.length).fill(0);
+      return parsed.map((v: any) => (typeof v === "number" ? v : 0));
+    } catch {
+      return (surah && Array(surah.ayahs.length).fill(0)) || [];
+    }
+  })();
+
+  const [ayahDurations, setAyahDurations] =
+    useState<number[]>(initialDurations);
+  const hadInitialCache = useRef<boolean>(initialDurations.some((v) => v > 0));
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,8 +51,23 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Optimized: load durations lazily and cache in localStorage to avoid
+    // creating 114 audio elements on mount (which causes network and timeouts).
+    if (!surah) return;
+
+    const cacheKey = `surah-durations-${surah.number}`;
+
+    const writeCache = (arr: number[]) => {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(arr));
+      } catch {
+        // ignore
+      }
+    };
+
     const getAudioDuration = (url: string) =>
       new Promise<number>((resolve) => {
+        if (!url) return resolve(0);
         const audio = new Audio();
         audio.preload = "metadata";
 
@@ -63,19 +94,39 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
         audio.src = url;
       });
 
+    // If we already had cached durations (read during render), skip initializing
+    // placeholders here. Otherwise set placeholders and load a small window.
+    if (!hadInitialCache.current) {
+      setAyahDurations(Array(surah.ayahs.length).fill(0));
+    }
+
     let cancelled = false;
 
-    const loadDurations = async () => {
-      if (!surah) return;
-      const durations = await Promise.all(
-        surah.ayahs.map((ayah) => getAudioDuration(ayah.audio)),
-      );
-      if (!cancelled) {
-        setAyahDurations(durations);
+    const loadWindow = async (start = 0, count = 3) => {
+      const end = Math.min(surah.ayahs.length, start + count);
+      const results = [] as Array<{ idx: number; dur: number }>;
+      for (let i = start; i < end; i += 1) {
+        try {
+          const dur = await getAudioDuration(surah.ayahs[i].audio);
+          results.push({ idx: i, dur });
+        } catch {
+          results.push({ idx: i, dur: 0 });
+        }
+        if (cancelled) break;
+      }
+
+      if (!cancelled && results.length) {
+        setAyahDurations((current) => {
+          const next = [...current];
+          results.forEach((r) => (next[r.idx] = r.dur));
+          writeCache(next);
+          return next;
+        });
       }
     };
 
-    void loadDurations();
+    // Only load window if no initial cache was present.
+    if (!hadInitialCache.current) void loadWindow(0, 3);
 
     return () => {
       cancelled = true;
@@ -145,11 +196,61 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
     };
   };
 
+  const ensureDurationLoaded = async (index: number) => {
+    if (!surah) return;
+    if (ayahDurations[index] && ayahDurations[index] > 0) return;
+
+    try {
+      const dur = await new Promise<number>((resolve) => {
+        const audio = new Audio();
+        audio.preload = "metadata";
+
+        const cleanup = () => {
+          audio.removeEventListener("loadedmetadata", onLoaded);
+          audio.removeEventListener("error", onError);
+        };
+
+        const onLoaded = () => {
+          const audioDuration = Number.isFinite(audio.duration)
+            ? audio.duration
+            : 0;
+          cleanup();
+          resolve(audioDuration);
+        };
+
+        const onError = () => {
+          cleanup();
+          resolve(0);
+        };
+
+        audio.addEventListener("loadedmetadata", onLoaded);
+        audio.addEventListener("error", onError);
+        audio.src = surah.ayahs[index].audio;
+      });
+
+      setAyahDurations((current) => {
+        const next = [...current];
+        next[index] = dur;
+        try {
+          localStorage.setItem(
+            `surah-durations-${surah.number}`,
+            JSON.stringify(next),
+          );
+        } catch {}
+        return next;
+      });
+    } catch {
+      // ignore
+    }
+  };
+
   const playAyahAtIndex = async (index: number, startAtSeconds = 0) => {
     const ayah = surah?.ayahs[index];
     if (!ayah?.audio) return;
 
     try {
+      // ensure duration available for mapping and seeks
+      await ensureDurationLoaded(index);
       if (activeAyahIndex === index && audioRef.current) {
         if (isPlaying) {
           audioRef.current.pause();
@@ -184,6 +285,10 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
 
       const cleanup = syncAudioState(audio, index);
       await audio.play();
+
+      // prefetch neighboring durations to make seeking smoother
+      if (index + 1 < surah.ayahs.length) void ensureDurationLoaded(index + 1);
+      if (index - 1 >= 0) void ensureDurationLoaded(index - 1);
 
       audio.addEventListener("ended", cleanup, { once: true });
     } catch (playError) {

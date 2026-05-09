@@ -43,15 +43,30 @@ export function AudioPlayer({
   onSeek,
 }: AudioPlayerProps) {
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const progressPercent = Number.isFinite(progress) ? progress : 0;
 
   const seekFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const seekPercentage = Math.max(
+    const clamp = Math.max(
       0,
       Math.min(1, (event.clientX - rect.left) / rect.width),
     );
+    const seekTarget = clamp * duration;
+    onSeek(seekTarget);
+    setHoverTime(seekTarget);
+  };
 
-    onSeek(seekPercentage * duration);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      onSeek(Math.max(0, currentTime - 5));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      onSeek(Math.min(duration, currentTime + 5));
+    }
   };
 
   return (
@@ -65,13 +80,29 @@ export function AudioPlayer({
           className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#141414] text-white shadow-[0_-12px_40px_rgba(0,0,0,0.35)]"
         >
           <div
-            className="relative h-0.75 w-full cursor-pointer bg-white/5 transition-colors hover:bg-white/10"
+            className="relative h-1 w-full cursor-pointer bg-white/5 transition-colors hover:bg-white/10 touch-none"
+            style={{ touchAction: "none" }}
+            role="slider"
+            aria-valuemin={0}
+            aria-valuemax={Math.max(0, duration || 0)}
+            aria-valuenow={currentTime}
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId);
               setIsScrubbing(true);
               seekFromPointer(event);
             }}
             onPointerMove={(event) => {
+              const rect = (
+                event.currentTarget as HTMLDivElement
+              ).getBoundingClientRect();
+              const clamp = Math.max(
+                0,
+                Math.min(1, (event.clientX - rect.left) / rect.width),
+              );
+              setHoverTime(clamp * duration);
+              setIsHovering(true);
               if (!isScrubbing) return;
               seekFromPointer(event);
             }}
@@ -80,19 +111,34 @@ export function AudioPlayer({
                 seekFromPointer(event);
               }
               setIsScrubbing(false);
+              setIsHovering(false);
               event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+            onPointerLeave={() => {
+              if (!isScrubbing) setIsHovering(false);
             }}
             onPointerCancel={() => setIsScrubbing(false)}
             onLostPointerCapture={() => setIsScrubbing(false)}
           >
             <div
               className="h-full bg-primary transition-[width] duration-150 ease-linear"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progressPercent}%` }}
             />
+
             <div
-              className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/20 bg-primary shadow-[0_0_0_2px_rgba(66,128,56,0.18)] transition-[left] duration-150 ease-linear"
-              style={{ left: `${progress}%` }}
+              className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/20 bg-primary shadow-[0_4px_12px_rgba(0,0,0,0.45)] transition-[left] duration-150 ease-linear"
+              style={{ left: `${progressPercent}%` }}
             />
+
+            {/* hover tooltip */}
+            {isHovering && hoverTime !== null && (
+              <div
+                className="absolute -top-8 z-20 -translate-x-1/2 rounded-md bg-black/80 px-2 py-1 text-xs text-white"
+                style={{ left: `${progressPercent}%` }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
           </div>
 
           <div className="px-4 py-3 sm:px-6 relative">
