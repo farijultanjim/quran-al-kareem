@@ -83,10 +83,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
       effectiveTheme = isDark ? "dark" : "light";
     }
 
-    // Apply theme colors
-    const themeColors = THEME_COLORS[effectiveTheme];
-    root.style.setProperty("--background", themeColors.background);
-    root.style.setProperty("--primary", themeColors.primary);
     root.setAttribute("data-theme", effectiveTheme);
 
     // Set Tailwind dark mode class

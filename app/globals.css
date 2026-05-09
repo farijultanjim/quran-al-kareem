@@ -34,7 +34,7 @@
 /* Sepia theme */
 :root[data-theme="sepia"] {
   --background: #f8f5ec;
-  --foreground: #3e3e3e;
+  --foreground: #3a3027;
   --primary: #97724e;
   --primary-light: #c4a37d;
   --primary-dark: #6d5539;

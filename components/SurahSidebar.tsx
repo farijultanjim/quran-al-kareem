@@ -93,7 +93,7 @@ export function SurahSidebar() {
             placeholder="Search Surah"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-10 rounded-full border border-border/40 bg-transparent"
+            className="pl-10 h-10 rounded-full border border-border/40 bg-foreground/5"
           />
         </div>
       </SidebarHeader>

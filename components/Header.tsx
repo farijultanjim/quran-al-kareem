@@ -106,78 +106,56 @@ export default function Header({
         style={{ y: springY }}
       >
         <div
-          className={`transition-all duration-500 border-b border-border w-full ${
-            scrolled
-              ? "backdrop-blur-xl bg-background/80"
-              : "backdrop-blur-md bg-background/60"
-          }`}
-          style={{
-            background: scrolled
-              ? "rgba(255, 255, 255, 0.08)"
-              : "rgba(255, 255, 255, 0.05)",
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter: "blur(5px)",
-            // boxShadow: "0 4px 24px rgba(0, 0, 0, 0.08)",
-          }}
+          className={`transition-all duration-500 border-b border-border w-full bg-background`}
         >
-          {/* Liquid Glass Effect Overlay */}
-          <div
-            className="absolute inset-0 opacity-20 rounded-2xl"
-            style={{
-              background: `
-                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.1) 0%, transparent 50%)
-              `,
-            }}
-          />
-
           <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5">
             <div className="flex items-center justify-between">
               {/* Menu Button - Mobile/Tablet Only */}
-              <motion.div
-                className="md:hidden"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  transition: {
-                    duration: 0.5,
-                    ease: customEasing,
-                    delay: 0,
-                  },
-                }}
-              >
-                <Button
-                  variant="icon"
-                  onClick={onMenuClick}
-                  aria-label="Menu"
-                  className="w-9 h-9 sm:w-10 sm:h-10"
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="md:hidden"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      duration: 0.5,
+                      ease: customEasing,
+                      delay: 0,
+                    },
+                  }}
                 >
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="icon"
+                    onClick={onMenuClick}
+                    aria-label="Menu"
+                    className="w-9 h-9 sm:w-10 sm:h-10"
+                  >
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </motion.div>
 
-              {/* Logo */}
-              <motion.div
-                variants={logoVariants}
-                initial="initial"
-                animate="animate"
-                className="shrink-0"
-              >
-                <Link href="/" className="flex items-center gap-2 md:gap-3">
-                  <BookOpen className="w-6 h-6 md:w-7.5 md:h-7.5 text-primary" />
+                {/* Logo */}
+                <motion.div
+                  variants={logoVariants}
+                  initial="initial"
+                  animate="animate"
+                  className="shrink-0"
+                >
+                  <Link href="/" className="flex items-center gap-2 md:gap-3">
+                    <BookOpen className="w-6 h-6 md:w-7.5 md:h-7.5 text-primary" />
 
-                  <div className="hidden sm:flex flex-col items-start">
-                    <h1 className="text-[19px] md:text-[22px] font-bold text-primary leading-none">
-                      Quran
-                    </h1>
-                    <p className="text-xs md:text-sm text-foreground/80 font-medium leading-none">
-                      Al-Kareem
-                    </p>
-                  </div>
-                </Link>
-              </motion.div>
+                    <div className="flex flex-col items-start">
+                      <h1 className="text-lg md:text-[20px] font-bold text-primary leading-none">
+                        Quran Al-Kareem
+                      </h1>
+                      <p className="hidden md:flex text-[10px] font-light text-foreground/40">
+                        Read, Study and Learn The Quran
+                      </p>
+                    </div>
+                  </Link>
+                </motion.div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5 sm:gap-2">

@@ -71,7 +71,7 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
               placeholder="Search Surah"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 h-12 rounded-full border border-border/40 bg-transparent"
+              className="pl-11 h-12 rounded-full border border-border/40 bg-foreground/5"
             />
           </div>
         </SheetHeader>
