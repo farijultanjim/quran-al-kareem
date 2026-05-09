@@ -2,7 +2,7 @@
 
 import { motion, cubicBezier } from "framer-motion";
 import { ArrowDown } from "lucide-react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/Button";
 
 const customEasing = cubicBezier(0.23, 1, 0.32, 1);
 

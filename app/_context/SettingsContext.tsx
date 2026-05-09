@@ -9,11 +9,13 @@ import React, {
 } from "react";
 
 export type ArabicFont = "amiri" | "scheherazade" | "traditional";
+export type Theme = "light" | "dark" | "sepia" | "system";
 
 export interface Settings {
   arabicFont: ArabicFont;
   arabicFontSize: number; // in rem
   translationFontSize: number; // in rem
+  theme: Theme;
 }
 
 interface SettingsContextType {
@@ -26,6 +28,22 @@ const DEFAULT_SETTINGS: Settings = {
   arabicFont: "amiri",
   arabicFontSize: 1.125,
   translationFontSize: 0.95,
+  theme: "system",
+};
+
+export const THEME_COLORS = {
+  light: {
+    background: "#FFFFFF",
+    primary: "#428038",
+  },
+  dark: {
+    background: "#0D0D0D",
+    primary: "#428038",
+  },
+  sepia: {
+    background: "#F8F5EC",
+    primary: "#97724E",
+  },
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -57,6 +75,26 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
     if (!mounted) return;
 
     const root = document.documentElement;
+
+    // Determine effective theme (system -> light/dark based on OS preference)
+    let effectiveTheme: "light" | "dark" | "sepia" = settings.theme as any;
+    if (settings.theme === "system") {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      effectiveTheme = isDark ? "dark" : "light";
+    }
+
+    // Apply theme colors
+    const themeColors = THEME_COLORS[effectiveTheme];
+    root.style.setProperty("--background", themeColors.background);
+    root.style.setProperty("--primary", themeColors.primary);
+    root.setAttribute("data-theme", effectiveTheme);
+
+    // Set Tailwind dark mode class
+    if (effectiveTheme === "dark" || effectiveTheme === "sepia") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
 
     // Set font size variables
     root.style.setProperty(

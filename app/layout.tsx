@@ -3,7 +3,7 @@ import { Archivo, Amiri, Scheherazade_New } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from "./_context/SettingsContext";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
-import { LenisProvider } from "@/lib/lenis";
+import { ThemeInitializer } from "@/components/ThemeInitializer";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -36,14 +36,41 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const saved = localStorage.getItem("quran-settings");
+                let theme = "system";
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  theme = parsed.theme || "system";
+                }
+                
+                let effectiveTheme = theme;
+                if (theme === "system") {
+                  effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                }
+                
+                document.documentElement.setAttribute("data-theme", effectiveTheme);
+                if (effectiveTheme === "dark" || effectiveTheme === "sepia") {
+                  document.documentElement.classList.add("dark");
+                } else {
+                  document.documentElement.classList.remove("dark");
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${archivo.variable} ${amiri.variable} ${scheherazade.variable} antialiased`}
       >
-        <LenisProvider>
-          <SettingsProvider>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </SettingsProvider>
-        </LenisProvider>
+        <SettingsProvider>
+          <ThemeInitializer />
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </SettingsProvider>
       </body>
     </html>
   );

@@ -56,7 +56,7 @@ export function Button({
     return (
       <motion.button
         whileTap={{ scale: 0.95 }}
-        className={`p-2 md:p-2.5 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300 cursor-pointer ${className}`}
+        className={`p-2 md:p-2.5 rounded-full bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300 cursor-pointer flex items-center justify-center ${className}`}
         {...(commonProps as any)}
       >
         {children}

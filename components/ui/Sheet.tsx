@@ -49,9 +49,9 @@ function SheetContent({
 }) {
   const sideClasses = {
     top: "inset-x-0 top-0 h-auto border-b",
-    right: "inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+    right: "inset-y-0 right-0 h-full w-full sm:w-3/4 sm:max-w-sm border-l",
     bottom: "inset-x-0 bottom-0 h-auto border-t",
-    left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+    left: "inset-y-0 left-0 h-full w-full sm:w-3/4 sm:max-w-sm border-r",
   };
 
   const slideClasses = {
@@ -63,21 +63,20 @@ function SheetContent({
     left: "data-[state=open]:slide-in-from-left-10 data-[state=closed]:slide-out-to-left-10",
   };
 
-
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
-        className={`fixed z-50 flex flex-col bg-background/95 backdrop-blur-xl border-foreground/10 shadow-lg transition-all duration-200 p-4 ${sideClasses[side]} ${slideClasses[side]} data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 ${className || ""}`}
+        className={`fixed z-50 flex flex-col bg-background/95 backdrop-blur-xl border-foreground/10 shadow-lg transition-all duration-300 p-4 ${sideClasses[side]} ${slideClasses[side]} data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 ${className || ""}`}
         {...props}
       >
         <div className="flex flex-col overflow-hidden flex-1 min-h-0">
-          <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain" data-lenis-prevent>
+          <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
             {children}
           </div>
         </div>
-        <SheetPrimitive.Close className="absolute top-4 right-4 text-foreground/60 hover:text-foreground transition-colors z-10">
-          <X className="w-5 h-5" />
+        <SheetPrimitive.Close className="absolute top-6 right-6 text-foreground/60 hover:text-foreground transition-colors z-10">
+          <X className="w-6 h-6" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>

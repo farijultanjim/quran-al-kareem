@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Sheet,
@@ -9,10 +9,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/Sheet";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/Button";
 import { useSettings, type ArabicFont } from "@/app/_context/SettingsContext";
 import { RotateCcw } from "lucide-react";
-import { useLenis } from "@/lib/lenis";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 interface SettingsSheetProps {
   open: boolean;
@@ -21,17 +21,7 @@ interface SettingsSheetProps {
 
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const { settings, updateSettings, resetSettings } = useSettings();
-  const lenis = useLenis();
   const [tempSettings, setTempSettings] = useState(settings);
-
-  // Stop Lenis when sheet is open so the background page doesn't scroll
-  useEffect(() => {
-    if (!lenis) return;
-    if (open) {
-      lenis.stop();
-      return () => lenis.start();
-    }
-  }, [open, lenis]);
 
   const arabicFonts: { label: string; value: ArabicFont; preview: string }[] = [
     { label: "Amiri", value: "amiri", preview: "Amiri" },
@@ -63,6 +53,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       arabicFont: "amiri",
       arabicFontSize: 1.125,
       translationFontSize: 0.95,
+      theme: "system",
     });
   };
 
@@ -75,6 +66,15 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
         </SheetHeader>
 
         <div className="flex flex-col gap-6">
+          {/* Theme Selector */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.0 }}
+          >
+            <ThemeSelector />
+          </motion.div>
+
           {/* Arabic Font Selection */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -133,8 +133,8 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
             <div className="space-y-3">
               <input
                 type="range"
-                min="0.875"
-                max="1.875"
+                min="1.15"
+                max="2.875"
                 step="0.125"
                 value={settings.arabicFontSize}
                 onChange={(e) =>

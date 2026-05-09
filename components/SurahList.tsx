@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSettings } from "@/app/_context/SettingsContext";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/Button";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 interface DisplaySurah {
