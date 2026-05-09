@@ -7,7 +7,15 @@ interface ButtonProps extends Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   "type"
 > {
-  variant?: "primary" | "outlined" | "icon" | "sm" | "sm-outlined" | "select";
+  variant?:
+    | "primary"
+    | "outlined"
+    | "icon"
+    | "ghost"
+    | "sm"
+    | "sm-outlined"
+    | "select";
+  size?: "default" | "icon-sm";
   children: React.ReactNode;
   className?: string;
   isActive?: boolean;
@@ -15,6 +23,7 @@ interface ButtonProps extends Omit<
 
 export function Button({
   variant = "primary",
+  size = "default",
   children,
   className = "",
   isActive,
@@ -53,10 +62,26 @@ export function Button({
   }
 
   if (variant === "icon") {
+    const compactIconClass = size === "icon-sm" ? "h-8 w-8 p-0" : "";
+
     return (
       <motion.button
         whileTap={{ scale: 0.95 }}
-        className={`p-2 md:p-2.5 rounded-full bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300 cursor-pointer flex items-center justify-center ${className}`}
+        className={`rounded-full bg-primary/10 hover:bg-primary/15 text-primary transition-colors duration-300 cursor-pointer flex items-center justify-center ${compactIconClass || "p-2 md:p-2.5"} ${className}`}
+        {...(commonProps as any)}
+      >
+        {children}
+      </motion.button>
+    );
+  }
+
+  if (variant === "ghost") {
+    const compactGhostClass = size === "icon-sm" ? "h-8 w-8 p-0" : "";
+
+    return (
+      <motion.button
+        whileTap={{ scale: 0.95 }}
+        className={`inline-flex items-center justify-center rounded-md bg-transparent text-foreground/80 transition-colors hover:bg-foreground/5 hover:text-foreground cursor-pointer ${compactGhostClass || "px-3 py-2"} ${className}`}
         {...(commonProps as any)}
       >
         {children}

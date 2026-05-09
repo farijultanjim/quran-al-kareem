@@ -442,7 +442,9 @@ export default function SurahPage() {
             transition={{ duration: 0.5 }}
             className="mb-12"
           >
+
             <div className="text-center mb-8 ">
+
               {/* Arabic Name */}
               <h1
                 className="text-3xl md:text-4xl text-right mb-10 leading-tight px-8"
@@ -487,7 +489,9 @@ export default function SurahPage() {
                 key={ayah.numberInSurah}
                 variants={itemVariants}
                 className={`p-6 border-b border-border transition-colors ${
-                  activeAyahIndex === index && isPlaying ? "bg-primary/15 " : ""
+                  activeAyahIndex === index && isPlaying
+                    ? "bg-primary/15 "
+                    : ""
                 }`}
               >
                 <div className="flex flex-col lg:flex-row justify-between gap-3 p-4">
