@@ -5,7 +5,7 @@ async function build() {
     try {
         console.log('Building search index...');
         const [arabicRes, englishRes] = await Promise.all([
-            fetch('https://api.alquran.cloud/v1/quran/quran-uthmani'),
+            fetch('https://api.alquran.cloud/v1/quran/ar.alafasy'),
             fetch('https://api.alquran.cloud/v1/quran/en.asad'),
         ]);
 
@@ -27,9 +27,18 @@ async function build() {
         }));
 
         const ayahs = [];
-        arabic.data.surahs.forEach((surah) => {
+        const surahDetails = arabic.data.surahs.map((surah) => {
             const engSurah = english.data.surahs.find((x) => x.number === surah.number);
-            surah.ayahs.forEach((ayah, idx) => {
+
+            const ayahsForSurah = surah.ayahs.map((ayah, idx) => {
+                const item = {
+                    number: ayah.number,
+                    text: ayah.text,
+                    audio: ayah.audio || '',
+                    numberInSurah: ayah.numberInSurah,
+                    englishText: engSurah?.ayahs?.[idx]?.text || '',
+                };
+
                 ayahs.push({
                     surahNumber: surah.number,
                     surahName: surah.name,
@@ -38,7 +47,18 @@ async function build() {
                     text: ayah.text,
                     translation: engSurah?.ayahs?.[idx]?.text || '',
                 });
+
+                return item;
             });
+
+            return {
+                number: surah.number,
+                name: surah.name,
+                englishName: surah.englishName,
+                englishNameTranslation: surah.englishNameTranslation,
+                revelationType: surah.revelationType,
+                ayahs: ayahsForSurah,
+            };
         });
 
         const out = { surahs, ayahs };
@@ -46,6 +66,14 @@ async function build() {
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, JSON.stringify(out));
         console.log('Wrote', outPath);
+
+        const surahDataPath = path.join(process.cwd(), 'lib', 'generated', 'surah-data.json');
+        fs.mkdirSync(path.dirname(surahDataPath), { recursive: true });
+        fs.writeFileSync(
+            surahDataPath,
+            JSON.stringify({ surahs: surahDetails })
+        );
+        console.log('Wrote', surahDataPath);
     } catch (err) {
         console.error('Error building search index', err);
     }
