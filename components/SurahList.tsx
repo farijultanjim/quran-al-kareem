@@ -39,46 +39,24 @@ const itemVariants = {
 type SortOrder = "ascending" | "descending";
 type RevelationType = "all" | "Meccan" | "Medinan";
 
-export function SurahList() {
+export function SurahList({
+  initialSurahs,
+}: {
+  initialSurahs?: DisplaySurah[];
+}) {
   const { settings } = useSettings();
-  const [surahs, setSurahs] = useState<DisplaySurah[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [surahs, setSurahs] = useState<DisplaySurah[]>(initialSurahs || []);
+  const [loading, setLoading] = useState(initialSurahs ? false : true);
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>("ascending");
   const [revelationFilter, setRevelationFilter] =
     useState<RevelationType>("all");
 
+  // If no initialSurahs provided, show loading (caller should provide server-fetched list)
   useEffect(() => {
-    async function fetchSurahs() {
-      try {
-        const response = await fetch(
-          "https://api.alquran.cloud/v1/quran/quran-uthmani",
-        );
-        if (!response.ok) throw new Error("Failed to fetch Surahs");
-
-        const data = await response.json();
-        interface ApiSurah extends DisplaySurah {
-          ayahs: { length: number };
-        }
-        const surahList = data.data.surahs.map((surah: ApiSurah) => ({
-          number: surah.number,
-          name: surah.name,
-          englishName: surah.englishName,
-          englishNameTranslation: surah.englishNameTranslation,
-          revelationType: surah.revelationType,
-          numberOfAyahs: surah.ayahs.length,
-        }));
-
-        setSurahs(surahList);
-        setLoading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load Surahs");
-        setLoading(false);
-      }
-    }
-
-    fetchSurahs();
-  }, []);
+    if (initialSurahs) return;
+    // nothing here: keep loading until caller provides data
+  }, [initialSurahs]);
 
   // Apply filtering and sorting to surahs
   const getFilteredAndSortedSurahs = () => {

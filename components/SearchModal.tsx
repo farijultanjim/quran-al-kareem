@@ -59,60 +59,25 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
     };
   }, [query]);
 
-  // Fetch all surahs and ayahs on component mount
+  // Fetch prebuilt search index (built at build-time)
   useEffect(() => {
     if (!open || hasFetchedRef.current) return;
 
-    async function fetchData() {
+    async function fetchIndex() {
       try {
-        // Fetch Arabic and English translations in parallel
-        const [arabicRes, englishRes] = await Promise.all([
-          fetch("https://api.alquran.cloud/v1/quran/quran-uthmani"),
-          fetch("https://api.alquran.cloud/v1/quran/en.asad"),
-        ]);
+        const res = await fetch("/search-index.json");
+        if (!res.ok) return;
+        const data = await res.json();
 
-        const arabicData = await arabicRes.json();
-        const englishData = await englishRes.json();
-
-        // Process Surahs
-        const surahs = arabicData.data.surahs.map((surah: SearchSurah) => ({
-          number: surah.number,
-          name: surah.name,
-          englishName: surah.englishName,
-          englishNameTranslation: surah.englishNameTranslation,
-          revelationType: surah.revelationType,
-          numberOfAyahs: surah.numberOfAyahs,
-        }));
-
-        // Process Ayahs with translations
-        const ayahs: SearchAyah[] = [];
-        arabicData.data.surahs.forEach((surah: any) => {
-          const englishSurah = englishData.data.surahs.find(
-            (s: any) => s.number === surah.number,
-          );
-
-          surah.ayahs.forEach((ayah: any, index: number) => {
-            const englishAyah = englishSurah?.ayahs[index];
-            ayahs.push({
-              surahNumber: surah.number,
-              surahName: surah.name,
-              surahEnglishName: surah.englishName,
-              ayahNumber: ayah.numberInSurah,
-              text: ayah.text,
-              translation: englishAyah?.text || "",
-            });
-          });
-        });
-
-        setAllSurahs(surahs);
-        setAllAyahs(ayahs);
+        setAllSurahs(data.surahs || []);
+        setAllAyahs(data.ayahs || []);
         hasFetchedRef.current = true;
       } catch (err) {
-        console.error("Failed to fetch data:", err);
+        console.error("Failed to load search index:", err);
       }
     }
 
-    fetchData();
+    void fetchIndex();
   }, [open]);
 
   // Calculate results for both surahs and ayahs
@@ -223,7 +188,10 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
               </div>
 
               {/* Results */}
-              <div className="max-h-[60vh] overflow-y-auto overscroll-contain" data-lenis-prevent>
+              <div
+                className="max-h-[60vh] overflow-y-auto overscroll-contain"
+                data-lenis-prevent
+              >
                 {query &&
                 results.surahs.length === 0 &&
                 results.ayahs.length === 0 ? (
