@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import { SearchModal } from "@/components/SearchModal";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SurahProvider } from "./SurahProvider";
 import { ModalProvider, useModals } from "@/app/_context/ModalContext";
 
@@ -15,7 +16,7 @@ function LayoutWrapperInner({ children }: LayoutWrapperProps) {
   const { setSettingsOpen, setSurahOpen } = useModals();
 
   return (
-    <>
+    <ErrorBoundary>
       <Header
         onSearchClick={() => setSearchOpen(true)}
         onSettingsClick={() => setSettingsOpen(true)}
@@ -23,7 +24,7 @@ function LayoutWrapperInner({ children }: LayoutWrapperProps) {
       />
       <SearchModal open={searchOpen} onOpenChange={setSearchOpen} />
       {children}
-    </>
+    </ErrorBoundary>
   );
 }
 

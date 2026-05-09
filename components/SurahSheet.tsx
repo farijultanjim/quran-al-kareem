@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSurahStore } from "./SurahProvider";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/Sheet";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollRestoration } from "@/lib/hooks/useScrollRestoration";
 
 interface Surah {
   number: number;
@@ -25,7 +26,6 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const { surahs: ctxSurahs, loading: ctxLoading } = useSurahStore();
   useEffect(() => {
@@ -47,56 +47,14 @@ export function SurahSheet({ open, onOpenChange }: SurahSheetProps) {
   const currentSurahId = pathname?.split("/").pop()
     ? parseInt(pathname.split("/").pop() as string)
     : null;
-  // manage scroll inside the sheet container: restore saved position and keep selected surah visible
-  useEffect(() => {
-    const KEY = "surah-sheet-scroll-y";
-    const container = scrollRef.current;
-    if (!container) return;
 
-    if (open) {
-      const saved = sessionStorage.getItem(KEY);
-      if (saved) {
-        const y = parseInt(saved, 10);
-        if (!Number.isNaN(y)) container.scrollTop = y;
-      }
-
-      // Wait for items to render before scrolling to the selected surah.
-      if (currentSurahId) {
-        let attempts = 0;
-        const tryScroll = () => {
-          const el = container.querySelector(
-            `[data-surah-number="${currentSurahId}"]`,
-          );
-          if (el instanceof HTMLElement) {
-            const offset =
-              el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
-            container.scrollTo({ top: offset, behavior: "auto" });
-            return;
-          }
-          attempts += 1;
-          if (attempts < 8) {
-            setTimeout(tryScroll, 80);
-          }
-        };
-        // schedule first attempt on next tick so React can render list
-        setTimeout(tryScroll, 0);
-      }
-    }
-
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        sessionStorage.setItem(KEY, String(container.scrollTop || 0));
-      });
-    };
-
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [open, currentSurahId, surahs.length]);
+  // Use hook for scroll restoration and selection tracking
+  const scrollRef = useScrollRestoration({
+    storageKey: "SURAH_SHEET_SCROLL",
+    isOpen: open,
+    selectedItemSelector: "[data-surah-number]",
+    selectedItemId: currentSurahId,
+  });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

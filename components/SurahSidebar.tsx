@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSurahStore } from "./SurahProvider";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useScrollRestoration } from "@/lib/hooks/useScrollRestoration";
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +31,6 @@ export function SurahSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [headerHidden, setHeaderHidden] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // provider handles fetching; local state will sync from context below
@@ -42,9 +42,9 @@ export function SurahSidebar() {
     setLoading(ctxLoading);
   }, [ctxSurahs, ctxLoading]);
 
+  // Handle header hide/show on scroll
   useEffect(() => {
-    const scrollEl =
-      scrollRef.current ?? document.getElementById("surah-scroll-container");
+    const scrollEl = document.getElementById("surah-scroll-container");
     let prevScrollY = scrollEl
       ? (scrollEl as HTMLElement).scrollTop
       : window.scrollY;
@@ -73,62 +73,13 @@ export function SurahSidebar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Persist sidebar scroll position and restore it; keep selected surah visible
-  useEffect(() => {
-    const KEY = "surah-sidebar-scroll-y";
-    const container =
-      scrollRef.current ?? document.getElementById("surah-scroll-container");
-    if (!container) return;
-
-    const saved = sessionStorage.getItem(KEY);
-    if (saved) {
-      const v = parseInt(saved, 10);
-      if (!Number.isNaN(v)) (container as HTMLElement).scrollTop = v;
-    }
-
-    if (currentSurahId) {
-      // Retry finding the element because the list may render after fetch
-      let attempts = 0;
-      const tryScroll = () => {
-        const el = (container as HTMLElement).querySelector(
-          `[data-surah-number="${currentSurahId}"]`,
-        );
-        if (el instanceof HTMLElement) {
-          const offset =
-            el.offsetTop -
-            (container as HTMLElement).clientHeight / 2 +
-            el.clientHeight / 2;
-          (container as HTMLElement).scrollTo({
-            top: offset,
-            behavior: "auto",
-          });
-          return;
-        }
-        attempts += 1;
-        if (attempts < 10) setTimeout(tryScroll, 80);
-      };
-      setTimeout(tryScroll, 0);
-    }
-
-    let raf = 0;
-    const onScrollSave = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        sessionStorage.setItem(
-          KEY,
-          String((container as HTMLElement).scrollTop || 0),
-        );
-      });
-    };
-
-    (container as HTMLElement).addEventListener("scroll", onScrollSave, {
-      passive: true,
-    });
-    return () => {
-      (container as HTMLElement).removeEventListener("scroll", onScrollSave);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [currentSurahId]);
+  // Use hook for scroll restoration and selection tracking
+  const scrollRef = useScrollRestoration({
+    storageKey: "SURAH_SIDEBAR_SCROLL",
+    isOpen: true,
+    selectedItemSelector: "[data-surah-number]",
+    selectedItemId: currentSurahId,
+  });
 
   const filteredSurahs = surahs.filter(
     (surah) =>

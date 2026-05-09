@@ -5,6 +5,12 @@ import { motion } from "framer-motion";
 import { Copy, Pause, Play } from "lucide-react";
 import { useSettings } from "@/app/_context/SettingsContext";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import {
+  loadDurationsFromCache,
+  saveDurationsToCache,
+  getAudioDuration,
+} from "@/lib/cache/durations";
+import { AUDIO_CACHE_WINDOW } from "@/lib/constants";
 
 interface Ayah {
   number: number;
@@ -26,20 +32,9 @@ interface SurahDetail {
 export default function SurahClient({ surah }: { surah: SurahDetail }) {
   const { settings } = useSettings();
   const [activeAyahIndex, setActiveAyahIndex] = useState<number | null>(null);
-  const initialDurations = (() => {
-    try {
-      if (typeof window === "undefined" || !surah) return [] as number[];
-      const key = `surah-durations-${surah.number}`;
-      const raw = localStorage.getItem(key);
-      if (!raw) return Array(surah.ayahs.length).fill(0);
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length !== surah.ayahs.length)
-        return Array(surah.ayahs.length).fill(0);
-      return parsed.map((v: any) => (typeof v === "number" ? v : 0));
-    } catch {
-      return (surah && Array(surah.ayahs.length).fill(0)) || [];
-    }
-  })();
+  const initialDurations = surah
+    ? loadDurationsFromCache(surah.number, surah.ayahs.length)
+    : [];
 
   const [ayahDurations, setAyahDurations] =
     useState<number[]>(initialDurations);
@@ -51,60 +46,14 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Optimized: load durations lazily and cache in localStorage to avoid
-    // creating 114 audio elements on mount (which causes network and timeouts).
     if (!surah) return;
-
-    const cacheKey = `surah-durations-${surah.number}`;
-
-    const writeCache = (arr: number[]) => {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(arr));
-      } catch {
-        // ignore
-      }
-    };
-
-    const getAudioDuration = (url: string) =>
-      new Promise<number>((resolve) => {
-        if (!url) return resolve(0);
-        const audio = new Audio();
-        audio.preload = "metadata";
-
-        const cleanup = () => {
-          audio.removeEventListener("loadedmetadata", onLoaded);
-          audio.removeEventListener("error", onError);
-        };
-
-        const onLoaded = () => {
-          const audioDuration = Number.isFinite(audio.duration)
-            ? audio.duration
-            : 0;
-          cleanup();
-          resolve(audioDuration);
-        };
-
-        const onError = () => {
-          cleanup();
-          resolve(0);
-        };
-
-        audio.addEventListener("loadedmetadata", onLoaded);
-        audio.addEventListener("error", onError);
-        audio.src = url;
-      });
-
-    // If we already had cached durations (read during render), skip initializing
-    // placeholders here. Otherwise set placeholders and load a small window.
-    if (!hadInitialCache.current) {
-      setAyahDurations(Array(surah.ayahs.length).fill(0));
-    }
 
     let cancelled = false;
 
-    const loadWindow = async (start = 0, count = 3) => {
+    const loadWindow = async (start = 0, count = AUDIO_CACHE_WINDOW) => {
       const end = Math.min(surah.ayahs.length, start + count);
       const results = [] as Array<{ idx: number; dur: number }>;
+
       for (let i = start; i < end; i += 1) {
         try {
           const dur = await getAudioDuration(surah.ayahs[i].audio);
@@ -119,14 +68,13 @@ export default function SurahClient({ surah }: { surah: SurahDetail }) {
         setAyahDurations((current) => {
           const next = [...current];
           results.forEach((r) => (next[r.idx] = r.dur));
-          writeCache(next);
+          saveDurationsToCache(surah.number, next);
           return next;
         });
       }
     };
 
-    // Only load window if no initial cache was present.
-    if (!hadInitialCache.current) void loadWindow(0, 3);
+    if (!hadInitialCache.current) void loadWindow(0, AUDIO_CACHE_WINDOW);
 
     return () => {
       cancelled = true;
